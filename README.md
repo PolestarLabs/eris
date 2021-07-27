@@ -1,3 +1,7 @@
+> ## ⚠ This fork might contain modifications added to suit specific internal needs. ⚠
+> ### *Use at your own risk*
+
+
 Eris [![NPM version](https://img.shields.io/npm/v/eris.svg?style=flat-square&color=informational)](https://npmjs.com/package/eris)
 ====
 
