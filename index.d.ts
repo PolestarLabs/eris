@@ -57,7 +57,9 @@ declare namespace Eris {
     allowedMentions?: AllowedMentions;
     components?: ActionRow[];
     content?: string;
+    /** @deprecated */
     embed?: EmbedOptions;
+    embeds?: EmbedOptions[];
     flags?: number;
     messageReference?: MessageReferenceReply;
     /** @deprecated */
@@ -591,6 +593,7 @@ declare namespace Eris {
       listener: (member: Member, newChannel: AnyVoiceChannel, oldChannel: AnyVoiceChannel) => void
     ): T;
     (event: "voiceStateUpdate", listener: (member: Member, oldState: OldVoiceState) => void): T;
+    (event: "voiceStateUpdate", listener: (member: UncachedMemberVoiceState, oldState: null) => void): T;
     (event: "warn" | "debug", listener: (message: string, id: number) => void): T;
     (event: "webhooksUpdate", listener: (data: WebhookData) => void): T;
     (event: string, listener: (...args: any[]) => void): T;
@@ -797,7 +800,7 @@ declare namespace Eris {
     presence_count: number;
   }
   interface WidgetMember {
-    avatar: null;
+    avatar: string | null;
     avatar_url: string;
     discriminator: string;
     id: string;
@@ -1090,6 +1093,10 @@ declare namespace Eris {
   interface StageInstanceOptions {
     privacyLevel?: StageInstancePrivacyLevel;
     topic?: string;
+  }
+  interface UncachedMemberVoiceState {
+    id: string;
+    voiceState: OldVoiceState;
   }
   interface VoiceConnectData {
     channel_id: string;
