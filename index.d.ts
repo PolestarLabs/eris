@@ -24,7 +24,7 @@ declare namespace Eris {
   type AnyVoiceChannel = VoiceChannel | StageChannel;
   type ChannelTypes = Constants["ChannelTypes"][keyof Constants["ChannelTypes"]];
   type GuildTextableChannel = TextChannel | NewsChannel | AnyThreadChannel;
-  type InviteChannel = InvitePartialChannel | Exclude<AnyGuildChannel, CategoryChannel>;
+  type InviteChannel = InvitePartialChannel | Exclude<AnyGuildChannel, CategoryChannel | AnyThreadChannel>;
   type PossiblyUncachedTextable = Textable | Uncached;
   type PossiblyUncachedTextableChannel = TextableChannel | Uncached;
   type TextableChannel = (GuildTextable & GuildTextableChannel) | (Textable & PrivateChannel);
@@ -85,6 +85,9 @@ declare namespace Eris {
   type FriendSuggestionReasons = { name: string; platform_type: string; type: number }[];
   type Status = "online" | "idle" | "dnd" | "offline";
 
+  // Thread
+  type AutoArchiveDuration = 60 | 1440 | 4320 | 10080;
+
   // Voice
   type ConverterCommand = "./ffmpeg" | "./avconv" | "ffmpeg" | "avconv";
   type StageInstancePrivacyLevel = 1 | 2;
@@ -127,7 +130,8 @@ declare namespace Eris {
   }
   interface EditChannelOptions extends Omit<CreateChannelOptions, "permissionOverwrites" | "reason"> {
     archived?: boolean;
-    autoArchiveDuration?: number;
+    autoArchiveDuration?: AutoArchiveDuration;
+    defaultAutoArchiveDuration?: AutoArchiveDuration;
     icon?: string;
     locked?: boolean;
     name?: string;
@@ -826,6 +830,12 @@ declare namespace Eris {
     recipients?: { username: string }[];
     type: Exclude<ChannelTypes, 1>;
   }
+  interface InviteStageInstance {
+    members: Member[];
+    participantCount: number;
+    speakerCount: number;
+    topic: string;
+  }
 
   // Member/User
   interface FetchMembersOptions {
@@ -879,7 +889,9 @@ declare namespace Eris {
   interface AdvancedMessageContent {
     allowedMentions?: AllowedMentions;
     content?: string;
+    /** @deprecated */
     embed?: EmbedOptions;
+    embeds?: EmbedOptions[];
     flags?: number;
     messageReference?: MessageReferenceReply;
     /** @deprecated */
@@ -1071,7 +1083,7 @@ declare namespace Eris {
     threads: T[];
   }
   interface CreateThreadOptions {
-    autoArchiveDuration: number;
+    autoArchiveDuration: AutoArchiveDuration;
     name: string;
   }
   interface CreateThreadWithoutMessageOptions extends CreateThreadOptions {
@@ -1085,7 +1097,7 @@ declare namespace Eris {
     archiveTimestamp: number;
     archived: boolean;
     archiverID?: string;
-    autoArchiveDuration: number;
+    autoArchiveDuration: AutoArchiveDuration;
     locked?: boolean;
   }
 
@@ -1093,10 +1105,6 @@ declare namespace Eris {
   interface StageInstanceOptions {
     privacyLevel?: StageInstancePrivacyLevel;
     topic?: string;
-  }
-  interface UncachedMemberVoiceState {
-    id: string;
-    voiceState: OldVoiceState;
   }
   interface VoiceConnectData {
     channel_id: string;
@@ -1247,6 +1255,10 @@ declare namespace Eris {
       INTEGRATION_CREATE: 80;
       INTEGRATION_UPDATE: 81;
       INTEGRATION_DELETE: 82;
+
+      STAGE_INSTANCE_CREATE: 83;
+      STAGE_INSTANCE_UPDATE: 84;
+      STAGE_INSTANCE_DELETE: 85;
     };
     ChannelTypes: {
       GUILD_TEXT: 0;
@@ -2362,6 +2374,7 @@ declare namespace Eris {
     maxUses: CT extends "withMetadata" ? number : null;
     memberCount: CT extends "withMetadata" | "withoutCount" ? null : number;
     presenceCount: CT extends "withMetadata" | "withoutCount" ? null : number;
+    stageInstance: CH extends StageChannel ? InviteStageInstance : null;
     temporary: CT extends "withMetadata" ? boolean : null;
     uses: CT extends "withMetadata" ? number : null;
     constructor(data: BaseData, client: Client);
@@ -2481,6 +2494,11 @@ declare namespace Eris {
 
   export class NewsThreadChannel extends ThreadChannel {
     type: 10;
+    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<NewsThreadChannel>>;
+    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<NewsThreadChannel>>;
+    getMessage(messageID: string): Promise<Message<NewsThreadChannel>>;
+    getMessages(options?: GetMessagesOptions): Promise<Message<NewsThreadChannel>[]>;
+    getPins(): Promise<Message<NewsThreadChannel>[]>;
   }
 
   export class Permission extends Base {
@@ -2548,10 +2566,20 @@ declare namespace Eris {
   
   export class PrivateThreadChannel extends ThreadChannel {
     type: 12;
+    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<PrivateThreadChannel>>;
+    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<PrivateThreadChannel>>;
+    getMessage(messageID: string): Promise<Message<PrivateThreadChannel>>;
+    getMessages(options?: GetMessagesOptions): Promise<Message<PrivateThreadChannel>[]>;
+    getPins(): Promise<Message<PrivateThreadChannel>[]>;
   }
 
   export class PublicThreadChannel extends ThreadChannel {
     type: 10 | 11;
+    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<PublicThreadChannel>>;
+    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<PublicThreadChannel>>;
+    getMessage(messageID: string): Promise<Message<PublicThreadChannel>>;
+    getMessages(options?: GetMessagesOptions): Promise<Message<PublicThreadChannel>[]>;
+    getPins(): Promise<Message<PublicThreadChannel>[]>;
   }
 
   export class Relationship extends Base implements Omit<Presence, "activities"> {
@@ -2732,6 +2760,7 @@ declare namespace Eris {
   }
 
   export class TextChannel extends GuildChannel implements GuildTextable, Invitable {
+    defaultAutoArchiveDuration: AutoArchiveDuration;
     lastMessageID: string;
     lastPinTimestamp: number | null;
     messages: Collection<Message<this>>;
@@ -2789,9 +2818,27 @@ declare namespace Eris {
     threadMetadata: ThreadMetadata;
     type: 10 | 11 | 12;
     constructor(data: BaseData, client: Client, messageLimit?: number);
+    addMessageReaction(messageID: string, reaction: string): Promise<void>;
+    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<ThreadChannel>>;
+    deleteMessage(messageID: string, reason?: string): Promise<void>;
+    deleteMessages(messageIDs: string[], reason?: string): Promise<void>;
+    edit(options: Pick<EditChannelOptions, "archived" | "autoArchiveDuration" | "locked" | "name" | "rateLimitPerUser">, reason?: string): Promise<this>;
+    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<ThreadChannel>>;
     getMembers(): Promise<ThreadMember[]>;
+    getMessage(messageID: string): Promise<Message<ThreadChannel>>;
+    getMessageReaction(messageID: string, reaction: string, options?: GetMessageReactionOptions): Promise<User[]>;
+    getMessages(options?: GetMessagesOptions): Promise<Message<ThreadChannel>[]>;
+    getPins(): Promise<Message<ThreadChannel>[]>;
     join(userID?: string): Promise<void>;
     leave(userID?: string): Promise<void>;
+    pinMessage(messageID: string): Promise<void>;
+    purge(options: PurgeChannelOptions): Promise<number>;
+    removeMessageReaction(messageID: string, reaction: string, userID?: string): Promise<void>;
+    removeMessageReactionEmoji(messageID: string, reaction: string): Promise<void>;
+    removeMessageReactions(messageID: string): Promise<void>;
+    sendTyping(): Promise<void>;
+    unpinMessage(messageID: string): Promise<void>;
+    unsendMessage(messageID: string): Promise<void>;
   }
 
   export class ThreadMember extends Base {
