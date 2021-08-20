@@ -7,7 +7,7 @@ import { URL } from "url";
 import { Socket as DgramSocket } from "dgram";
 import * as WebSocket from "ws";
 
-declare function Eris(token: string, options?: Eris.ClientOptions): Eris.Client;
+declare function Eris(token: string, options: Eris.ClientOptions): Eris.Client;
 
 declare namespace Eris {
   export const Constants: Constants;
@@ -47,6 +47,7 @@ declare namespace Eris {
   // Guild
   type DefaultNotifications = 0 | 1;
   type ExplicitContentFilter = 0 | 1 | 2;
+  type GuildFeatures = "ANIMATED_ICON" | "BANNER" | "COMMERCE" | "COMMUNITY" | "DISCOVERABLE" | "FEATURABLE" | "INVITE_SPLASH" | "MEMBER_VERIFICATION_GATE_ENABLED" | "NEWS" | "PARTNERED" | "PREVIEW_ENABLED" | "VANITY_URL" | "VERIFIED" | "VIP_REGIONS" | "WELCOME_SCREEN_ENABLED" | "TICKETED_EVENTS_ENABLED" | "MONETIZATION_ENABLED" | "MORE_STICKERS" | "THREE_DAY_THREAD_ARCHIVE" | "SEVEN_DAY_THREAD_ARCHIVE" | "PRIVATE_THREADS";
   type NSFWLevel = 0 | 1 | 2 | 3;
   type PossiblyUncachedGuild = Guild | Uncached;
   type PremiumTier = 0 | 1 | 2 | 3;
@@ -66,7 +67,7 @@ declare namespace Eris {
     messageReferenceID?: string;
     tts?: boolean;
   };
-  type ActionRowComponents = Button | Dropdown;
+  type ActionRowComponents = Button | SelectMenu;
   type Button = InteractionButton | URLButton;
   type Component = ActionRow | ActionRowComponents;
   type ImageFormat = "jpg" | "jpeg" | "png" | "gif" | "webp";
@@ -255,6 +256,7 @@ declare namespace Eris {
   interface RequestHandlerOptions {
     agent?: HTTPSAgent;
     baseURL?: string;
+    decodeReasons?: boolean;
     disableLatencyCompensation?: boolean;
     domain?: string;
     latencyThreshold?: number;
@@ -424,7 +426,7 @@ declare namespace Eris {
     discoverySplash: string | null;
     emojis: Omit<Emoji, "user" | "icon">[];
     explicitContentFilter: ExplicitContentFilter;
-    features: string[];
+    features: GuildFeatures[];
     icon: string | null;
     large: boolean;
     maxMembers?: number;
@@ -472,10 +474,11 @@ declare namespace Eris {
     videoQualityMode: VideoQualityMode;
   }
   interface OldMember {
-    roles: string[];
+    avatar: string | null;
     nick: string | null;
-    premiumSince: number;
     pending?: boolean;
+    premiumSince: number;
+    roles: string[];
   }
   interface OldMessage {
     attachments: Attachment[];
@@ -728,7 +731,7 @@ declare namespace Eris {
     description?: string;
     discoverySplash?: string;
     explicitContentFilter?: ExplicitContentFilter;
-    features?: string[];
+    features?: GuildFeatures[]; // Though only some are editable?
     icon?: string;
     name?: string;
     ownerID?: string;
@@ -849,7 +852,7 @@ declare namespace Eris {
     channelID?: string | null;
     deaf?: boolean;
     mute?: boolean;
-    nick?: string;
+    nick?: string | null;
     roles?: string[];
   }
   interface MemberPartial {
@@ -923,15 +926,16 @@ declare namespace Eris {
     label?: string;
     type: 2;
   }
-  interface Dropdown {
+  interface SelectMenu {
     custom_id: string;
+    disabled?: boolean;
     max_values?: number;
     min_values?: number;
-    options: DropdownOptions[];
+    options: SelectMenuOptions[];
     placeholder?: string;
     type: 3;
   }
-  interface DropdownOptions {
+  interface SelectMenuOptions {
     default?: boolean;
     description?: string;
     emoji?: Partial<PartialEmoji>;
@@ -1068,7 +1072,7 @@ declare namespace Eris {
     hoist?: boolean;
     mentionable?: boolean;
     name?: string;
-    permissions?: bigint | number | Permission;
+    permissions?: bigint | number | string | Permission;
   }
   interface RoleTags {
     bot_id?: string;
@@ -1255,7 +1259,6 @@ declare namespace Eris {
       INTEGRATION_CREATE: 80;
       INTEGRATION_UPDATE: 81;
       INTEGRATION_DELETE: 82;
-
       STAGE_INSTANCE_CREATE: 83;
       STAGE_INSTANCE_UPDATE: 84;
       STAGE_INSTANCE_DELETE: 85;
@@ -1299,6 +1302,8 @@ declare namespace Eris {
       guilds: 1;
       guildMembers: 2;
       guildBans: 4;
+      guildEmojisAndStickers: 8;
+      /** @deprecated */
       guildEmojis: 8;
       guildIntegrations: 16;
       guildWebhooks: 32;
@@ -1390,7 +1395,11 @@ declare namespace Eris {
       manageNicknames: 134217728n;
       manageRoles: 268435456n;
       manageWebhooks: 536870912n;
+      manageEmojisAndStickers: 1073741824n;
+      /** @deprecated */
       manageEmojis: 1073741824n;
+      useApplicationCommands: 2147483648n;
+      /** @deprecated */
       useSlashCommands: 2147483648n;
       voiceRequestToSpeak: 4294967296n;
       manageThreads: 17179869184n;
@@ -1400,6 +1409,7 @@ declare namespace Eris {
       allText: 123212397649n;
       allVoice: 4629464849n;
       all: 128849018879n;
+      useExternalStickers: 137438953472n;
     };
     REST_VERSION: 9;
     StickerFormats: {
@@ -1814,7 +1824,8 @@ declare namespace Eris {
     editGuildVoiceState(guildID: string, options: VoiceStateOptions, userID?: string): Promise<void>;
     editGuildWelcomeScreen(guildID: string, options: WelcomeScreenOptions): Promise<WelcomeScreen>;
     editGuildWidget(guildID: string, options: Widget): Promise<Widget>;
-    editMessage(channelID: string, messageID: string, content: MessageContentEdit): Promise<Message>;
+    editMessage(channelID: string, messageID: string, content: MessageContent): Promise<Message>;
+    /** @deprecated */
     editNickname(guildID: string, nick: string, reason?: string): Promise<void>;
     editRole(guildID: string, roleID: string, options: RoleOptions, reason?: string): Promise<Role>; // TODO not all options are available?
     editRolePosition(guildID: string, roleID: string, position: number): Promise<void>;
@@ -2120,7 +2131,7 @@ declare namespace Eris {
     emojiCount?: number;
     emojis: Emoji[];
     explicitContentFilter: ExplicitContentFilter;
-    features: string[];
+    features: GuildFeatures[];
     icon: string | null;
     iconURL: string | null;
     id: string;
@@ -2203,6 +2214,7 @@ declare namespace Eris {
     editEmoji(emojiID: string, options: { name: string; roles?: string[] }, reason?: string): Promise<Emoji>;
     editIntegration(integrationID: string, options: IntegrationOptions): Promise<void>;
     editMember(memberID: string, options: MemberOptions, reason?: string): Promise<Member>;
+    /** @deprecated */
     editNickname(nick: string): Promise<void>;
     editRole(roleID: string, options: RoleOptions): Promise<Role>;
     editTemplate(code: string, options: GuildTemplateOptions): Promise<GuildTemplate>;
@@ -2324,7 +2336,7 @@ declare namespace Eris {
     discoverySplash: string | null;
     discoverySplashURL: string | null;
     emojis: Emoji[];
-    features: string[];
+    features: GuildFeatures[];
     icon: string | null;
     iconURL: string | null;
     id: string;
