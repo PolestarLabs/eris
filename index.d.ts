@@ -1164,6 +1164,7 @@ declare namespace Eris {
   interface FileContent {
     file: Buffer | string;
     name: string;
+    description: string;
   }
   interface MessageInteraction {
     id: string;
