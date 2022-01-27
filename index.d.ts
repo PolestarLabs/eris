@@ -692,19 +692,6 @@ declare namespace Eris {
   interface OldThreadMember {
     flags: number;
   }
-  interface OldStageInstance {
-    discoverableDisabled: boolean;
-    privacyLevel: StageInstancePrivacyLevel;
-    topic: string;
-  }
-  interface OldThread {
-    name: string;
-    rateLimitPerUser: number;
-    threadMetadata: ThreadMetadata;
-  }
-  interface OldThreadMember {
-    flags: number;
-  }
   interface OldVoiceState {
     deaf: boolean;
     mute: boolean;
@@ -913,7 +900,7 @@ declare namespace Eris {
     integrations: GuildIntegration[];
     threads: AnyThreadChannel[];
     users: User[];
-    webhooks: Webhook[]
+    webhooks: Webhook[];
   }
   interface GuildOptions {
     afkChannelID?: string;
@@ -1150,7 +1137,7 @@ declare namespace Eris {
     description?: string;
     emoji?: Partial<PartialEmoji>;
     label: string;
-    value: number | string;
+    value: string;
   }
   interface GetMessageReactionOptions {
     after?: string;
@@ -3155,15 +3142,6 @@ declare namespace Eris {
     type: Constants["ChannelTypes"]["GUILD_NEWS_THREAD"];
   }
 
-  export class NewsThreadChannel extends ThreadChannel {
-    type: 10;
-    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<NewsThreadChannel>>;
-    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<NewsThreadChannel>>;
-    getMessage(messageID: string): Promise<Message<NewsThreadChannel>>;
-    getMessages(options?: GetMessagesOptions): Promise<Message<NewsThreadChannel>[]>;
-    getPins(): Promise<Message<NewsThreadChannel>[]>;
-  }
-
   export class Permission extends Base {
     allow: bigint;
     deny: bigint;
@@ -3225,24 +3203,6 @@ declare namespace Eris {
     syncCall(): void;
     unpinMessage(messageID: string): Promise<void>;
     unsendMessage(messageID: string): Promise<void>;
-  }
-  
-  export class PrivateThreadChannel extends ThreadChannel {
-    type: 12;
-    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<PrivateThreadChannel>>;
-    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<PrivateThreadChannel>>;
-    getMessage(messageID: string): Promise<Message<PrivateThreadChannel>>;
-    getMessages(options?: GetMessagesOptions): Promise<Message<PrivateThreadChannel>[]>;
-    getPins(): Promise<Message<PrivateThreadChannel>[]>;
-  }
-
-  export class PublicThreadChannel extends ThreadChannel {
-    type: 10 | 11;
-    createMessage(content: MessageContent, file?: MessageFile | MessageFile): Promise<Message<PublicThreadChannel>>;
-    editMessage(messageID: string, content: MessageContentEdit): Promise<Message<PublicThreadChannel>>;
-    getMessage(messageID: string): Promise<Message<PublicThreadChannel>>;
-    getMessages(options?: GetMessagesOptions): Promise<Message<PublicThreadChannel>[]>;
-    getPins(): Promise<Message<PublicThreadChannel>[]>;
   }
 
   export class PrivateThreadChannel extends ThreadChannel {
